@@ -12,6 +12,7 @@
     "@11labs/client": "^0.0.7",
     "@opentelemetry/api": "^1.9.0",
     "@posthog/ai": "^3.2.1",
+    "@radix-ui/react-radio-group": "^1.2.2",
     "@radix-ui/react-slot": "^1.1.2",
     "audiomotion-analyzer": "^4.5.0",
     "class-variance-authority": "^0.7.1",
