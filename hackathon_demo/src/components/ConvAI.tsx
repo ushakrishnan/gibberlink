@@ -383,30 +383,19 @@ export function ConvAI() {
                 {latestUserMessage && (
                     <div 
                         key={`message-${latestUserMessage}`}
-                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[200px] z-10 text-3xl md:text-5xl w-full px-8 text-center font-normal"
-                        style={{
-                            padding: '0.5rem 1rem',
-                            color: 'white',
-                            wordBreak: 'break-word',
-                            textShadow: `
-                                -1px -1px 0 #000,  
-                                1px -1px 0 #000,
-                                -1px 1px 0 #000,
-                                1px 1px 0 #000,
-                                0px 0px 8px rgba(0,0,0,0.5)
-                            `
-                        }}
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[200px] z-10 text-3xl md:text-5xl w-full px-8 text-center font-normal message-display"
                     >
                         {latestUserMessage}
                     </div>
                 )}
                 
                 <div className="h-full w-full flex items-center justify-center">
-                    <div id="audioviz" style={{ marginLeft: "-150px", width: "400px", height: "300px", display: glMode ? 'block' : 'none' }} />
+                    <div id="audioviz" className={cn('audio-visualizer', glMode ? 'visible' : 'hidden')} />
                     {!glMode && <div className={cn('orb',
                         isSpeaking ? 'animate-orb' : (conversation && 'animate-orb-slow'),
                         isConnected || glMode ? 'orb-active' : 'orb-inactive',
-                        agentType
+                        agentType,
+                        conversation || isConnected || isLoading || glMode ? 'orb-default' : 'orb-clickable'
                     )}
                     onClick={() => {
                         if (!conversation && !isConnected && !isLoading) {
@@ -415,7 +404,6 @@ export function ConvAI() {
                             setLLMChat([{ role: 'system', content: SYSTEM_MESSAGES[newAgentType] }]);
                         }
                     }}
-                    style={{ cursor: conversation || isConnected || isLoading || glMode ? 'default' : 'pointer' }}
                     ></div>}
                 </div>
 
@@ -431,7 +419,8 @@ export function ConvAI() {
                                                 setTestMode(!testMode);
                                             }
                                         }}
-                                        disabled={conversation || isConnected || isLoading || isTestRunning}
+                                        disabled={!!conversation || isConnected || isLoading || isTestRunning}
+                                        aria-label={`Toggle test mode ${testMode ? 'off' : 'on'}`}
                                         className={cn(
                                             "w-10 h-6 rounded-full transition-all relative",
                                             testMode ? "bg-green-500" : "bg-gray-600",
@@ -452,7 +441,7 @@ export function ConvAI() {
                                             setLLMChat([{ role: 'system', content: SYSTEM_MESSAGES['inbound'] }]);
                                         }
                                     }}
-                                    disabled={conversation || isConnected || isLoading || glMode}
+                                    disabled={!!conversation || isConnected || isLoading || glMode}
                                     className={cn(
                                         "px-4 py-2 rounded-full text-sm font-medium transition-all",
                                         agentType === 'inbound' 
@@ -470,7 +459,7 @@ export function ConvAI() {
                                             setLLMChat([{ role: 'system', content: SYSTEM_MESSAGES['outbound'] }]);
                                         }
                                     }}
-                                    disabled={conversation || isConnected || isLoading || glMode}
+                                    disabled={!!conversation || isConnected || isLoading || glMode}
                                     className={cn(
                                         "px-4 py-2 rounded-full text-sm font-medium transition-all",
                                         agentType === 'outbound' 

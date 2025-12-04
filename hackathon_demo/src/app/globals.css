@@ -99,3 +99,40 @@ body {
       transform: translate(0, 0) rotate(360deg);
   }
 }
+
+/* Message Display */
+.message-display {
+  padding: 0.5rem 1rem;
+  color: white;
+  word-break: break-word;
+  text-shadow: 
+    -1px -1px 0 #000,  
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    0px 0px 8px rgba(0,0,0,0.5);
+}
+
+/* Audio Visualizer */
+.audio-visualizer {
+  margin-left: -150px;
+  width: 400px;
+  height: 300px;
+}
+
+.audio-visualizer.hidden {
+  display: none;
+}
+
+.audio-visualizer.visible {
+  display: block;
+}
+
+/* Orb Cursor */
+.orb-clickable {
+  cursor: pointer;
+}
+
+.orb-default {
+  cursor: default;
+}
