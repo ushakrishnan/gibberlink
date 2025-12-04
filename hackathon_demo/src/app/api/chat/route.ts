@@ -26,7 +26,7 @@ const getModelName = () => {
 
 export async function POST(req: Request) {
   try {
-    const { messages, agentType, sessionId } = await req.json()
+    const { messages } = await req.json()
     
     const requestParams: any = {
       model: getModelName(),

@@ -74,20 +74,6 @@ export function ConvAI() {
         setLLMChat([{ role: 'system', content: SYSTEM_MESSAGES[randomType] }]);
     }, []);
 
-    if (false)
-    useEffect(() => {
-        console.log('DEBUG')
-        setGlMode(true);
-        setConversation(null);
-        startRecording();
-
-        setTimeout(() => {
-            const msg = agentType === 'inbound' ? 'Hey there? how are you?' : 'Hello hello AI-buddy!'
-            setLatestUserMessage(msg)
-            sendAudioMessage(msg, agentType === 'inbound');
-        }, 5000);
-    }, [])
-
 
     const endConversation = useCallback(async () => {
         console.log('endConversation called, conversation state:', conversation);
@@ -249,7 +235,7 @@ export function ConvAI() {
         return () => {
             audioMessageEmitter.off('recordingMessage', handleRecordingMessage);
         };
-    }, [endConversation, genMyNextMessage, setLLMChat, setLatestUserMessage, setGlMode, isProcessingInput, llmChat, agentType]);
+    }, [endConversation, genMyNextMessage, isProcessingInput, llmChat, agentType]);
 
     // Initialize AudioMotion-Analyzer when glMode is activated
     useEffect(() => {
@@ -296,7 +282,7 @@ export function ConvAI() {
                 }
             };
         }
-    }, [glMode, mounted]);
+    }, [glMode, mounted, agentType]);
 
     async function startConversation() {
         setIsLoading(true)
