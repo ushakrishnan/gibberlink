@@ -34,6 +34,33 @@ Bonus: you can open the [ggwave web demo](https://waver.ggerganov.com/), play th
 - [Norman Kirchner decoding the protocol on sound level](https://www.youtube.com/watch?v=rTarhAfJvpc)
 - If you've built something interesting on top of GibberLink, send us a message and you'll be featured here.
 
+## Enhancements
+
+This fork includes the following enhancements:
+
+**AI Provider Flexibility:**
+- Support for both OpenAI and Azure OpenAI
+- Simple environment variable configuration to switch between providers
+- Automatic API compatibility handling for different providers
+
+**Test Mode:**
+- Single-device testing mode for development and demonstrations
+- Automatic simulation of agent-to-agent conversations using LLM
+- Toggle between Test Mode (simulated) and Real Mode (two-device audio)
+
+**Improved User Experience:**
+- Agent type selector UI (Receptionist/Wedding Planner)
+- Visual test mode toggle
+- Better error handling and TypeScript type safety
+- Accessibility improvements (ARIA labels, proper button semantics)
+- Clean CSS architecture (moved inline styles to external stylesheets)
+
+**Developer Experience:**
+- Comprehensive setup documentation
+- Production-ready build configuration
+- ESLint compliance for Next.js deployment
+- Proper .gitignore for clean repository management
+
 ## How to repro
 https://github.com/PennyroyalTea/gibberlink/wiki/Repro-steps-for-demo
 
