@@ -53,18 +53,26 @@ export function ConvAI() {
     const [conversation, setConversation] = useState<Conversation | null>(null)
     const [isConnected, setIsConnected] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
-    let init_agent_type = Math.random() < 0.5 ? 'inbound' : 'outbound'
-    init_agent_type = 'inbound'
-    const [agentType, setAgentType] = useState<'inbound' | 'outbound'>(init_agent_type)
+    const [agentType, setAgentType] = useState<'inbound' | 'outbound'>('inbound')
     const [isLoading, setIsLoading] = useState(false)
     const [latestUserMessage, setLatestUserMessage] = useState<string>('')
     const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).slice(2)}`);
     const [llmChat, setLLMChat] = useState<Message[]>([
-        { role: 'system', content: SYSTEM_MESSAGES[agentType] }
+        { role: 'system', content: SYSTEM_MESSAGES['inbound'] }
     ]);
     const [glMode, setGlMode] = useState(false);
     const [isProcessingInput, setIsProcessingInput] = useState(false);
+    const [testMode, setTestMode] = useState(false);
+    const [isTestRunning, setIsTestRunning] = useState(false);
     const audioMotionRef = useRef<AudioMotionAnalyzer | null>(null);
+    const testIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Set random agent type on client-side only to avoid hydration mismatch
+    useEffect(() => {
+        const randomType = Math.random() < 0.5 ? 'inbound' : 'outbound';
+        setAgentType(randomType);
+        setLLMChat([{ role: 'system', content: SYSTEM_MESSAGES[randomType] }]);
+    }, []);
 
     if (false)
     useEffect(() => {
@@ -143,6 +151,75 @@ export function ConvAI() {
             return "I apologize, but I'm having trouble generating a response right now.";
         }
     }, [llmChat, agentType, sessionId]);
+
+    // Test mode: Simulate agent-to-agent conversation
+    const startTestMode = useCallback(async () => {
+        setIsTestRunning(true);
+        setGlMode(true);
+        await startRecording();
+
+        // Initial message from the opposite agent
+        const initialMessage = agentType === 'inbound' 
+            ? 'Hello! I\'m calling about booking a hotel for a wedding.'
+            : 'Hello! Leonardo Hotel, how can I help you today?';
+        
+        setLatestUserMessage(initialMessage);
+        
+        // Add initial message to chat as if from the other agent
+        const updatedMessages = [...llmChat, { 
+            role: 'user' as const, 
+            content: '[GL MODE]: ' + initialMessage 
+        }];
+        setLLMChat(updatedMessages);
+
+        // Generate response and continue conversation
+        const response = await genMyNextMessage(updatedMessages);
+        setLatestUserMessage(response);
+        sendAudioMessage(response, agentType === 'inbound');
+
+        // Continue the conversation every 3 seconds
+        testIntervalRef.current = setInterval(async () => {
+            // Simulate receiving a message (generate from opposite perspective)
+            const oppositeAgentType = agentType === 'inbound' ? 'outbound' : 'inbound';
+            const oppositeMessages = [
+                { role: 'system' as const, content: SYSTEM_MESSAGES[oppositeAgentType] },
+                ...llmChat.slice(1)
+            ];
+
+            const oppositeResponse = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: oppositeMessages,
+                    agentType: oppositeAgentType,
+                    sessionId
+                }),
+            }).then(res => res.json()).then(data => data.content || '');
+
+            const oppositeMsg = oppositeResponse.replace('[GL MODE]: ', '');
+            setLatestUserMessage(oppositeMsg);
+
+            // Add to chat and generate response
+            const newMessages = [...llmChat, { 
+                role: 'user' as const, 
+                content: '[GL MODE]: ' + oppositeMsg 
+            }];
+            setLLMChat(newMessages);
+
+            const myResponse = await genMyNextMessage(newMessages);
+            setLatestUserMessage(myResponse);
+            sendAudioMessage(myResponse, agentType === 'inbound');
+        }, 4000);
+    }, [agentType, llmChat, genMyNextMessage, sessionId]);
+
+    const stopTestMode = useCallback(() => {
+        setIsTestRunning(false);
+        setGlMode(false);
+        if (testIntervalRef.current) {
+            clearInterval(testIntervalRef.current);
+            testIntervalRef.current = null;
+        }
+    }, []);
 
     useEffect(() => {
         setMounted(true);
@@ -343,18 +420,98 @@ export function ConvAI() {
                 </div>
 
                 {mounted && (
-                    <div className="fixed bottom-[40px] md:bottom-[60px] left-1/2 transform -translate-x-1/2">
-                        <Button
-                            variant={'outline'}
-                            className={'rounded-full select-none'}
-                            size={"lg"}
-                            disabled={isLoading}
-                            onClick={conversation || isConnected || glMode ? endConversation : startConversation}
-                            tabIndex={-1}
-                        >
-                            {isLoading ? 'Connecting...' : (conversation || isConnected || glMode ? 'End conversation' : 'Start conversation')}
-                        </Button>
-                    </div>
+                    <>
+                        <div className="fixed top-[20px] left-1/2 transform -translate-x-1/2 z-20">
+                            <div className="flex items-center gap-4 bg-black/50 backdrop-blur-sm rounded-full px-4 py-2">
+                                <div className="flex items-center gap-1">
+                                    <span className="text-xs text-gray-400">Test Mode</span>
+                                    <button
+                                        onClick={() => {
+                                            if (!conversation && !isConnected && !isLoading && !isTestRunning) {
+                                                setTestMode(!testMode);
+                                            }
+                                        }}
+                                        disabled={conversation || isConnected || isLoading || isTestRunning}
+                                        className={cn(
+                                            "w-10 h-6 rounded-full transition-all relative",
+                                            testMode ? "bg-green-500" : "bg-gray-600",
+                                            (conversation || isConnected || isLoading || isTestRunning) && "opacity-50 cursor-not-allowed"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+                                            testMode ? "left-5" : "left-1"
+                                        )} />
+                                    </button>
+                                </div>
+                                <div className="w-px h-6 bg-gray-600" />
+                                <button
+                                    onClick={() => {
+                                        if (!conversation && !isConnected && !isLoading && !glMode) {
+                                            setAgentType('inbound');
+                                            setLLMChat([{ role: 'system', content: SYSTEM_MESSAGES['inbound'] }]);
+                                        }
+                                    }}
+                                    disabled={conversation || isConnected || isLoading || glMode}
+                                    className={cn(
+                                        "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                                        agentType === 'inbound' 
+                                            ? "bg-blue-500 text-white" 
+                                            : "bg-gray-700 text-gray-300 hover:bg-gray-600",
+                                        (conversation || isConnected || isLoading || glMode) && "opacity-50 cursor-not-allowed"
+                                    )}
+                                >
+                                    Receptionist
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (!conversation && !isConnected && !isLoading && !glMode) {
+                                            setAgentType('outbound');
+                                            setLLMChat([{ role: 'system', content: SYSTEM_MESSAGES['outbound'] }]);
+                                        }
+                                    }}
+                                    disabled={conversation || isConnected || isLoading || glMode}
+                                    className={cn(
+                                        "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                                        agentType === 'outbound' 
+                                            ? "bg-orange-500 text-white" 
+                                            : "bg-gray-700 text-gray-300 hover:bg-gray-600",
+                                        (conversation || isConnected || isLoading || glMode) && "opacity-50 cursor-not-allowed"
+                                    )}
+                                >
+                                    Wedding Planner
+                                </button>
+                            </div>
+                        </div>
+                        <div className="fixed bottom-[40px] md:bottom-[60px] left-1/2 transform -translate-x-1/2">
+                            <Button
+                                variant={'outline'}
+                                className={'rounded-full select-none'}
+                                size={"lg"}
+                                disabled={isLoading}
+                                onClick={() => {
+                                    if (testMode) {
+                                        if (isTestRunning) {
+                                            stopTestMode();
+                                        } else {
+                                            startTestMode();
+                                        }
+                                    } else {
+                                        if (conversation || isConnected || glMode) {
+                                            endConversation();
+                                        } else {
+                                            startConversation();
+                                        }
+                                    }
+                                }}
+                                tabIndex={-1}
+                            >
+                                {isLoading ? 'Connecting...' : 
+                                 testMode ? (isTestRunning ? 'Stop Test' : 'Start Test') :
+                                 (conversation || isConnected || glMode ? 'End conversation' : 'Start conversation')}
+                            </Button>
+                        </div>
+                    </>
                 )}
             </div>
         </>
